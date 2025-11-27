@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Numbered Smooth Stack - Level 3</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/addons/p5.sound.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  
+  <style>
+    body { 
+      margin: 0; padding: 0; overflow: hidden; 
+      background: #050510; /* Background body gelap agar loading tidak silau */
+      display: flex; justify-content: center; align-items: center; height: 100vh;
+      font-family: 'Courier New', Courier, monospace; /* Font agak digital */
+    }
+    canvas { 
+      box-shadow: 0 0 50px rgba(100, 0, 255, 0.4); /* Glow ungu sesuai tema city */
+      border: 2px solid #333;
+      image-rendering: pixelated; /* Agar gambar tetap tajam ala pixel art */
+    }
+  </style>
+</head>
+<body>
+  <audio id="bgm" src="assets/level-music.mp3" autoplay loop></audio>
+  
+  <script src="level3.js"></script>
+</body>
+</html>

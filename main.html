@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Apartment Stack</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Palette warna diambil dari inspirasi gambar pixel art kamu */
+            --neon-cyan: #00f3ff;
+            --neon-purple: #bc13fe;
+            --deep-blue: #0a0a20;
+            --glass-bg: rgba(10, 10, 30, 0.65);
+            --text-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
+            
+            --game-height: 100vh;
+            /* Rasio aspek mobile agar pas di layar PC juga */
+            --game-width: calc(var(--game-height) * 0.56);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none; /* Mencegah teks di-blok */
+        }
+
+        body { 
+            margin: 0; padding: 0; overflow: hidden; 
+            background: #050510; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .game-wrapper {
+            position: relative;
+            width: var(--game-width);
+            height: var(--game-height);
+            /* BACKGROUND GIF TETAP SESUAI REQUEST */
+            background: url('https://i.pinimg.com/originals/4d/50/73/4d5073daa371e39e39413ea9d5493cbd.gif');
+            background-size: cover;
+            background-position: center;
+            border: 4px solid #111;
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- OVERLAY GELAP --- 
+           Supaya teks terbaca jelas di atas background yang ramai */
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8));
+            z-index: 1;
+        }
+
+        /* --- CRT SCANLINE EFFECT (Efek TV Tabung) --- */
+        .scanlines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            z-index: 10;
+            pointer-events: none; /* Supaya tombol tetap bisa diklik */
+        }
+
+        /* --- HUD CARD / CONTENT BOX --- */
+        .menu-content {
+            position: relative;
+            z-index: 5;
+            background: var(--glass-bg);
+            backdrop-filter: blur(4px); /* Efek Blur Kaca */
+            padding: 40px 20px;
+            border: 2px solid var(--neon-cyan);
+            border-radius: 10px;
+            text-align: center;
+            width: 80%;
+            box-shadow: 
+                0 0 20px rgba(0, 243, 255, 0.3),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        /* --- LOGO / JUDUL --- */
+        .title-top {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 0px var(--neon-purple);
+        }
+
+        .title-main {
+            color: var(--neon-cyan);
+            font-size: 42px;
+            margin: 0 0 40px 0;
+            text-transform: uppercase;
+            text-shadow: 
+                4px 4px 0px #000,
+                0 0 15px var(--neon-cyan);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        /* --- TOMBOL MULAI (UI/UX 10/10) --- */
+        .start-btn {
+            display: inline-block;
+            background: transparent;
+            color: var(--neon-cyan);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 18px;
+            padding: 20px 40px;
+            border: 3px solid var(--neon-cyan);
+            text-decoration: none;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px var(--neon-cyan);
+            text-shadow: 0 0 5px var(--neon-cyan);
+            margin-bottom: 20px;
+        }
+
+        /* Efek Hover Keren */
+        .start-btn:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 30px var(--neon-cyan);
+            transform: scale(1.05);
+        }
+
+        /* Efek Glitch saat ditekan */
+        .start-btn:active {
+            transform: scale(0.95);
+            background: var(--neon-purple);
+            border-color: var(--neon-purple);
+            color: #fff;
+        }
+
+        /* --- HIGHSCORE / INFO KECIL --- */
+        .info-panel {
+            margin-top: 20px;
+            font-size: 10px;
+            color: #aaa;
+            line-height: 1.8;
+        }
+        
+        .info-panel span {
+            color: var(--neon-purple);
+            font-weight: bold;
+        }
+
+        /* --- FOOTER --- */
+        .footer {
+            margin-top: 30px;
+            font-size: 8px;
+            color: #555;
+            text-transform: uppercase;
+        }
+
+        /* --- ANIMASI --- */
+        @keyframes glow {
+            from { text-shadow: 4px 4px 0 #000, 0 0 10px var(--neon-cyan); }
+            to { text-shadow: 4px 4px 0 #000, 0 0 25px var(--neon-cyan), 0 0 10px var(--neon-purple); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="game-wrapper">
+        <div class="overlay"></div>
+        <div class="scanlines"></div>
+
+        <div class="menu-content">
+            <div class="title-top">NEON CITY</div>
+            <h1 class="title-main">STACK</h1>
+
+            <a href="level1.html" class="start-btn">START GAME</a>
+
+            <div class="info-panel">
+                MISSION: BUILD THE HIGHEST TOWER<br>
+                STATUS: <span style="animation: blink 1s infinite">READY</span>
+            </div>
+
+            <div class="footer">
+                &copy; 2024 Polarius Games<br>
+                Powered by P5 &Matter.js
+            </div>
+        </div>
+    </div>
+
+    <audio id="bgm" src="assets/main.mp3" autoplay loop></audio>
+    <audio id="hvr" src="assets/beep.mp3"></audio>
+
+    <script>
+        // Play music on user interaction (autoplay policy)
+        const bgm = document.getElementById('bgm');
+        const hvr = document.getElementById('hvr');
+        document.body.addEventListener('click', () => {
+            if (bgm.paused) bgm.play();
+        });
+        const btn = document.querySelector('.start-btn');
+        btn.addEventListener('mouseenter', () => {
+            hvr.currentTime = 0;
+            hvr.play();
+        });
+        btn.addEventListener('mouseleave', () => {
+            hvr.pause();
+            hvr.currentTime = 0;
+        });
+    </script>
+
+</body>
+</html>
