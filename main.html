@@ -1,228 +1,375 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Apartment Stack</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+
     <style>
-        :root {
-            /* Palette warna diambil dari inspirasi gambar pixel art kamu */
-            --neon-cyan: #00f3ff;
-            --neon-purple: #bc13fe;
-            --deep-blue: #0a0a20;
-            --glass-bg: rgba(10, 10, 30, 0.65);
-            --text-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
-            
-            --game-height: 100vh;
-            /* Rasio aspek mobile agar pas di layar PC juga */
-            --game-width: calc(var(--game-height) * 0.56);
-        }
+      :root {
+        /* Palette warna */
+        --neon-cyan: #00f3ff;
+        --neon-purple: #bc13fe;
+        --deep-blue: #0a0a20;
+        --glass-bg: rgba(
+          10,
+          10,
+          30,
+          0.85
+        ); /* Sedikit lebih gelap agar teks modal jelas */
+        --modal-bg: rgba(0, 0, 0, 0.9);
 
-        * {
-            box-sizing: border-box;
-            user-select: none; /* Mencegah teks di-blok */
-        }
+        --game-height: 100vh;
+        --game-width: calc(var(--game-height) * 0.56);
+      }
 
-        body { 
-            margin: 0; padding: 0; overflow: hidden; 
-            background: #050510; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh;
-            font-family: 'Press Start 2P', cursive;
-        }
+      * {
+        box-sizing: border-box;
+        user-select: none;
+      }
 
-        .game-wrapper {
-            position: relative;
-            width: var(--game-width);
-            height: var(--game-height);
-            /* BACKGROUND GIF TETAP SESUAI REQUEST */
-            background: url('https://i.pinimg.com/originals/4d/50/73/4d5073daa371e39e39413ea9d5493cbd.gif');
-            background-size: cover;
-            background-position: center;
-            border: 4px solid #111;
-            box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #050510;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: "Press Start 2P", cursive;
+      }
 
-        /* --- OVERLAY GELAP --- 
-           Supaya teks terbaca jelas di atas background yang ramai */
-        .overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8));
-            z-index: 1;
-        }
+      .game-wrapper {
+        position: relative;
+        width: var(--game-width);
+        height: var(--game-height);
+        /* BACKGROUND GIF */
+        background: url("https://i.pinimg.com/originals/4d/50/73/4d5073daa371e39e39413ea9d5493cbd.gif");
+        background-size: cover;
+        background-position: center;
+        border: 4px solid #111;
+        box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
 
-        /* --- CRT SCANLINE EFFECT (Efek TV Tabung) --- */
-        .scanlines {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(
-                to bottom,
-                rgba(255,255,255,0),
-                rgba(255,255,255,0) 50%,
-                rgba(0,0,0,0.2) 50%,
-                rgba(0,0,0,0.2)
-            );
-            background-size: 100% 4px;
-            z-index: 10;
-            pointer-events: none; /* Supaya tombol tetap bisa diklik */
-        }
+      .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.3),
+          rgba(0, 0, 0, 0.8)
+        );
+        z-index: 1;
+      }
 
-        /* --- HUD CARD / CONTENT BOX --- */
-        .menu-content {
-            position: relative;
-            z-index: 5;
-            background: var(--glass-bg);
-            backdrop-filter: blur(4px); /* Efek Blur Kaca */
-            padding: 40px 20px;
-            border: 2px solid var(--neon-cyan);
-            border-radius: 10px;
-            text-align: center;
-            width: 80%;
-            box-shadow: 
-                0 0 20px rgba(0, 243, 255, 0.3),
-                inset 0 0 20px rgba(0, 0, 0, 0.5);
-        }
+      .scanlines {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0),
+          rgba(255, 255, 255, 0) 50%,
+          rgba(0, 0, 0, 0.2) 50%,
+          rgba(0, 0, 0, 0.2)
+        );
+        background-size: 100% 4px;
+        z-index: 10;
+        pointer-events: none;
+      }
 
-        /* --- LOGO / JUDUL --- */
-        .title-top {
-            color: #fff;
-            font-size: 24px;
-            margin-bottom: 5px;
-            letter-spacing: 2px;
-            text-shadow: 2px 2px 0px var(--neon-purple);
-        }
+      /* --- MAIN MENU CONTENT --- */
+      .menu-content {
+        position: relative;
+        z-index: 5;
+        background: rgba(10, 10, 30, 0.65);
+        backdrop-filter: blur(4px);
+        padding: 40px 20px;
+        border: 2px solid var(--neon-cyan);
+        border-radius: 10px;
+        text-align: center;
+        width: 80%;
+        box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+        transition: opacity 0.3s;
+      }
 
-        .title-main {
-            color: var(--neon-cyan);
-            font-size: 42px;
-            margin: 0 0 40px 0;
-            text-transform: uppercase;
-            text-shadow: 
-                4px 4px 0px #000,
-                0 0 15px var(--neon-cyan);
-            animation: glow 2s ease-in-out infinite alternate;
-        }
+      .title-top {
+        color: #fff;
+        font-size: 24px;
+        margin-bottom: 5px;
+        letter-spacing: 2px;
+        text-shadow: 2px 2px 0px var(--neon-purple);
+      }
 
-        /* --- TOMBOL MULAI (UI/UX 10/10) --- */
-        .start-btn {
-            display: inline-block;
-            background: transparent;
-            color: var(--neon-cyan);
-            font-family: 'Press Start 2P', cursive;
-            font-size: 18px;
-            padding: 20px 40px;
-            border: 3px solid var(--neon-cyan);
-            text-decoration: none;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.3s;
-            box-shadow: 0 0 10px var(--neon-cyan);
-            text-shadow: 0 0 5px var(--neon-cyan);
-            margin-bottom: 20px;
-        }
+      .title-main {
+        color: var(--neon-cyan);
+        font-size: 42px;
+        margin: 0 0 40px 0;
+        text-transform: uppercase;
+        text-shadow: 4px 4px 0px #000, 0 0 15px var(--neon-cyan);
+        animation: glow 2s ease-in-out infinite alternate;
+      }
 
-        /* Efek Hover Keren */
-        .start-btn:hover {
-            background: var(--neon-cyan);
-            color: #000;
-            box-shadow: 0 0 30px var(--neon-cyan);
-            transform: scale(1.05);
-        }
+      /* --- BUTTON STYLE --- */
+      .btn {
+        display: inline-block;
+        background: transparent;
+        color: var(--neon-cyan);
+        font-family: "Press Start 2P", cursive;
+        font-size: 16px;
+        padding: 20px 30px;
+        border: 3px solid var(--neon-cyan);
+        text-decoration: none;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.3s;
+        box-shadow: 0 0 10px var(--neon-cyan);
+        margin-bottom: 20px;
+        text-transform: uppercase;
+      }
 
-        /* Efek Glitch saat ditekan */
-        .start-btn:active {
-            transform: scale(0.95);
-            background: var(--neon-purple);
-            border-color: var(--neon-purple);
-            color: #fff;
-        }
+      .btn:hover {
+        background: var(--neon-cyan);
+        color: #000;
+        box-shadow: 0 0 30px var(--neon-cyan);
+        transform: scale(1.05);
+      }
 
-        /* --- HIGHSCORE / INFO KECIL --- */
-        .info-panel {
-            margin-top: 20px;
-            font-size: 10px;
-            color: #aaa;
-            line-height: 1.8;
-        }
-        
-        .info-panel span {
-            color: var(--neon-purple);
-            font-weight: bold;
-        }
+      .btn:active {
+        transform: scale(0.95);
+      }
 
-        /* --- FOOTER --- */
-        .footer {
-            margin-top: 30px;
-            font-size: 8px;
-            color: #555;
-            text-transform: uppercase;
-        }
+      .btn-start-now {
+        border-color: var(--neon-purple);
+        color: var(--neon-purple);
+        box-shadow: 0 0 10px var(--neon-purple);
+      }
 
-        /* --- ANIMASI --- */
-        @keyframes glow {
-            from { text-shadow: 4px 4px 0 #000, 0 0 10px var(--neon-cyan); }
-            to { text-shadow: 4px 4px 0 #000, 0 0 25px var(--neon-cyan), 0 0 10px var(--neon-purple); }
-        }
+      .btn-start-now:hover {
+        background: var(--neon-purple);
+        color: #fff;
+        box-shadow: 0 0 30px var(--neon-purple);
+      }
 
+      .info-panel {
+        margin-top: 20px;
+        font-size: 10px;
+        color: #aaa;
+        line-height: 1.8;
+      }
+
+      .info-panel span {
+        color: var(--neon-purple);
+        font-weight: bold;
+      }
+      .footer {
+        margin-top: 30px;
+        font-size: 8px;
+        color: #555;
+        text-transform: uppercase;
+      }
+
+      @keyframes glow {
+        from {
+          text-shadow: 4px 4px 0 #000, 0 0 10px var(--neon-cyan);
+        }
+        to {
+          text-shadow: 4px 4px 0 #000, 0 0 25px var(--neon-cyan),
+            0 0 10px var(--neon-purple);
+        }
+      }
+
+      /* --- MODAL / GUIDE POPUP STYLES --- */
+      .modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--modal-bg);
+        z-index: 50; /* Di atas segalanya */
+        display: none; /* Hidden by default */
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .modal-box {
+        background: var(--deep-blue);
+        border: 2px solid var(--neon-purple);
+        padding: 30px;
+        width: 85%;
+        max-width: 400px;
+        text-align: center;
+        border-radius: 4px;
+        box-shadow: 0 0 30px rgba(188, 19, 254, 0.4),
+          inset 0 0 20px rgba(0, 0, 0, 0.8);
+        transform: scale(0.8);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      .modal-title {
+        color: var(--neon-purple);
+        font-size: 20px;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 0 #000;
+        border-bottom: 2px solid #333;
+        padding-bottom: 15px;
+      }
+
+      .guide-text {
+        color: #ddd;
+        font-size: 12px;
+        line-height: 1.6;
+        margin-bottom: 30px;
+        text-align: left;
+      }
+
+      .guide-item {
+        margin-bottom: 10px;
+        display: flex;
+        align-items: flex-start;
+      }
+      .guide-icon {
+        color: var(--neon-cyan);
+        margin-right: 10px;
+      }
+
+      /* Class untuk menampilkan modal */
+      .modal-overlay.active {
+        display: flex;
+        opacity: 1;
+      }
+      .modal-overlay.active .modal-box {
+        transform: scale(1);
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <div class="game-wrapper">
-        <div class="overlay"></div>
-        <div class="scanlines"></div>
+      <div class="overlay"></div>
+      <div class="scanlines"></div>
 
-        <div class="menu-content">
-            <div class="title-top">APARTMENT</div>
-            <h1 class="title-main">STACK</h1>
+      <div class="menu-content" id="mainMenu">
+        <div class="title-top">APARTMENT</div>
+        <h1 class="title-main">STACK</h1>
 
-            <a href="level1.html" class="start-btn">START GAME</a>
+        <button id="openGuideBtn" class="btn">START GAME</button>
 
-            <div class="info-panel">
-                MISSION: BUILD THE HIGHEST TOWER<br>
-                STATUS: <span style="animation: blink 1s infinite">READY</span>
-            </div>
-
-            <div class="footer">
-                &copy; 2024 Polarius Games<br>
-                Powered by P5 &Matter.js
-            </div>
+        <div class="info-panel">
+          MISSION: BUILD THE HIGHEST TOWER<br />
+          STATUS: <span style="animation: blink 1s infinite">READY</span>
         </div>
+
+        <div class="footer">
+          &copy; 2024 Polarius Games<br />
+          Powered by P5 & Matter.js
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="guideModal">
+        <div class="modal-box">
+          <div class="modal-title">MISSION BRIEF</div>
+
+          <div class="guide-text">
+            <div class="guide-item">
+              <span class="guide-icon">></span>
+              <span>Stack blocks precisely to earn points.</span>
+            </div>
+            <div class="guide-item">
+              <span class="guide-icon">></span>
+              <span>Timing is key. Don't let it fall!</span>
+            </div>
+            <div class="guide-item">
+              <span class="guide-icon">></span>
+              <span>Reach the sky to unlock new skins.</span>
+            </div>
+          </div>
+
+          <button id="startGameBtn" class="btn btn-start-now">START NOW</button>
+        </div>
+      </div>
     </div>
 
-    <audio id="bgm" src="assets/main.mp3" autoplay loop></audio>
+    <audio id="bgm" src="assets/main.mp3" loop></audio>
     <audio id="hvr" src="assets/beep.mp3"></audio>
 
     <script>
-        // Play music on user interaction (autoplay policy)
-        const bgm = document.getElementById('bgm');
-        const hvr = document.getElementById('hvr');
-        document.body.addEventListener('click', () => {
-            if (bgm.paused) bgm.play();
-        });
-        const btn = document.querySelector('.start-btn');
-        btn.addEventListener('mouseenter', () => {
-            hvr.currentTime = 0;
-            hvr.play();
-        });
-        btn.addEventListener('mouseleave', () => {
-            hvr.pause();
-            hvr.currentTime = 0;
-        });
-    </script>
+      // --- AUDIO LOGIC ---
+      const bgm = document.getElementById("bgm");
+      const hvr = document.getElementById("hvr");
 
-</body>
+      // Memulai musik saat klik di mana saja (karena kebijakan browser)
+      document.body.addEventListener(
+        "click",
+        () => {
+          if (bgm.paused) {
+            bgm.volume = 0.5;
+            bgm.play().catch((e) => console.log("Audio play blocked"));
+          }
+        },
+        { once: true }
+      );
+
+      // Efek suara hover tombol
+      const buttons = document.querySelectorAll(".btn");
+      buttons.forEach((btn) => {
+        btn.addEventListener("mouseenter", () => {
+          hvr.currentTime = 0;
+          hvr.play();
+        });
+      });
+
+      // --- MODAL & GAME LOGIC ---
+      const openGuideBtn = document.getElementById("openGuideBtn");
+      const guideModal = document.getElementById("guideModal");
+      const startGameBtn = document.getElementById("startGameBtn");
+      const mainMenu = document.getElementById("mainMenu");
+
+      // 1. Saat tombol "START GAME" diklik -> Munculkan Modal
+      openGuideBtn.addEventListener("click", () => {
+        guideModal.classList.add("active");
+        // Opsional: Sembunyikan menu belakang sedikit agar fokus
+        mainMenu.style.opacity = "0.3";
+      });
+
+      // 2. Saat tombol "START NOW" diklik -> Pindah ke level1.html
+      startGameBtn.addEventListener("click", () => {
+        // Efek suara klik (opsional)
+        hvr.play();
+
+        // Delay sedikit untuk efek visual klik sebelum redirect
+        setTimeout(() => {
+          window.location.href = "level1.html";
+        }, 300);
+      });
+
+      // (Opsional) Tutup modal jika klik di luar kotak modal
+      guideModal.addEventListener("click", (e) => {
+        if (e.target === guideModal) {
+          guideModal.classList.remove("active");
+          mainMenu.style.opacity = "1";
+        }
+      });
+    </script>
+  </body>
 </html>

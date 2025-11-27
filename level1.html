@@ -1,25 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Apartment Stack</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-  <style>
-    body { 
-      margin: 0; padding: 0; overflow: hidden; 
-      background: #111; 
-      display: flex; justify-content: center; align-items: center; height: 100vh;
-      font-family: sans-serif;
-    }
-    canvas { 
-      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-      border: 1px solid #333;
-    }
-  </style>
-</head>
-<body>
-<audio id="bgm" src="assets/level-music.mp3" autoplay loop></audio>
-<script src="level1.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Apartment Stack - Level 1</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #111;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        /* Default font pixel untuk error message dsb */
+        font-family: "Press Start 2P", cursive;
+      }
+      canvas {
+        box-shadow: 0 0 50px rgba(0, 243, 255, 0.2); /* Efek glow neon sedikit */
+        border: 2px solid #333;
+      }
+    </style>
+  </head>
+  <body>
+    <audio id="bgm" src="assets/level-music.mp3" loop></audio>
+
+    <script src="level1.js"></script>
+
+    <script>
+      // Script tambahan untuk memastikan musik jalan saat user pertama kali klik layar
+      // (Solusi untuk browser yang memblokir autoplay)
+      document.body.addEventListener(
+        "click",
+        function () {
+          var audio = document.getElementById("bgm");
+          if (audio.paused) {
+            audio.play();
+            audio.volume = 0.6; // Volume 60% agar tidak terlalu kencang
+          }
+        },
+        { once: true }
+      );
+    </script>
+  </body>
 </html>

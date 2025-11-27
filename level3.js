@@ -1,9 +1,9 @@
 const Engine = Matter.Engine,
-    World = Matter.World,
-    Bodies = Matter.Bodies,
-    Body = Matter.Body,
-    Runner = Matter.Runner,
-    Events = Matter.Events;
+  World = Matter.World,
+  Bodies = Matter.Bodies,
+  Body = Matter.Body,
+  Runner = Matter.Runner,
+  Events = Matter.Events;
 
 let engine, world;
 let blocks = [];
@@ -24,227 +24,257 @@ let score = 0;
 let camY = 0;
 let groundY;
 
+// --- TIMER VARS (BARU) ---
+const GAME_DURATION = 30; 
+let timeLeft = GAME_DURATION;
+
 // Ambil score dari cookie
 function getCookie(name) {
-    let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    if (match) return parseInt(match[2]);
-    return 0;
+  let match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+  if (match) return parseInt(match[2]);
+  return 0;
 }
 
 // --- VARIABEL ---
-let blockCounter = getCookie('score') || 1;
-score = getCookie('score') || 0;
+let blockCounter = getCookie("score") || 1;
+score = getCookie("score") || 0;
 
 let bg;
 let blockImg;
 let clawImg;
-let floorImg; 
+let floorImg;
 
 function preload() {
-    // Aset Gambar Lokal (Pastikan file ini ada di folder assets komputer Anda)
-    bg = loadImage('assets/moon-with-city.jpg'); 
-    blockImg = loadImage('assets/blokmoon-with-city.png');
-    clawImg = loadImage('assets/claw.png');
-    
-    // GAMBAR TANAH (Langsung dari Link URL sesuai permintaan)
-    // Note: Jika gambar tidak muncul, pastikan koneksi internet aktif karena mengambil dari link online
-    floorImg = loadImage('https://i.ibb.co.com/N6DR4PCr/tanahmoon-with-city1.png'); 
+  // Aset Gambar Lokal
+  bg = loadImage("assets/moon-with-city.jpg");
+  blockImg = loadImage("assets/blokmoon-with-city.png");
+  clawImg = loadImage("assets/claw.png");
+
+  // GAMBAR TANAH ONLINE
+  floorImg = loadImage(
+    "https://i.ibb.co.com/N6DR4PCr/tanahmoon-with-city1.png"
+  );
 }
 
 function setup() {
-    createCanvas(windowHeight * 0.56, windowHeight);
-    groundY = height - 100;
+  createCanvas(windowHeight * 0.56, windowHeight);
+  
+  // Set Font Pixel
+  textFont("'Press Start 2P', monospace");
+  
+  groundY = height - 100;
 
-    engine = Engine.create();
-    world = engine.world;
-    engine.world.gravity.y = 1.2;
+  engine = Engine.create();
+  world = engine.world;
+  engine.world.gravity.y = 1.2;
 
-    // Tanah Fisik (Invisible/Collision only)
-    floor = Bodies.rectangle(width / 2, groundY + 100, width * 2, 200, { isStatic: true, label: 'floor' });
-    World.add(world, floor);
+  // Tanah Fisik (Invisible/Collision only)
+  floor = Bodies.rectangle(width / 2, groundY + 100, width * 2, 200, {
+    isStatic: true,
+    label: "floor",
+  });
+  World.add(world, floor);
 
-    // Pondasi Fisik
-    foundation = Bodies.rectangle(width / 2, groundY, 80, 40, {
-        isStatic: true,
-        label: 'foundation',
-        friction: 1.0, restitution: 0.0
+  // Pondasi Fisik
+  foundation = Bodies.rectangle(width / 2, groundY, 80, 40, {
+    isStatic: true,
+    label: "foundation",
+    friction: 1.0,
+    restitution: 0.0,
+  });
+  World.add(world, foundation);
+
+  // --- LOGIC TABRAKAN ---
+  Events.on(engine, "collisionStart", (e) => {
+    e.pairs.forEach((pair) => {
+      let bodyA = pair.bodyA;
+      let bodyB = pair.bodyB;
+
+      // Cek Game Over (Jatuh ke lantai)
+      if (
+        (bodyA.label === "floor" && bodyB.label === "block") ||
+        (bodyB.label === "floor" && bodyA.label === "block")
+      ) {
+        gameOver();
+      }
+
+      // Logic Pendaratan (hasLanded)
+      if (bodyA.label === "block") bodyA.hasLanded = true;
+      if (bodyB.label === "block") bodyB.hasLanded = true;
     });
-    World.add(world, foundation);
+  });
 
-    // --- LOGIC TABRAKAN ---
-    Events.on(engine, 'collisionStart', (e) => {
-        e.pairs.forEach(pair => {
-            let bodyA = pair.bodyA;
-            let bodyB = pair.bodyB;
-
-            // Cek Game Over
-            if ((bodyA.label === 'floor' && bodyB.label === 'block') ||
-                (bodyB.label === 'floor' && bodyA.label === 'block')) {
-                gameOver();
-            }
-
-            // Logic Pendaratan (hasLanded)
-            if (bodyA.label === 'block') bodyA.hasLanded = true;
-            if (bodyB.label === 'block') bodyB.hasLanded = true;
-        });
-    });
-
-    Runner.run(engine);
-    spawnNextBlock();
+  Runner.run(engine);
+  spawnNextBlock();
 }
 
 function draw() {
-    // Gambar Background
-    if (bg) {
-        image(bg, 0, 0, width, height);
-    } else {
-        background(20, 10, 40);
+  // Gambar Background
+  if (bg) {
+    image(bg, 0, 0, width, height);
+  } else {
+    background(20, 10, 40);
+  }
+
+  // --- LOGIC TIMER & UPDATE ---
+  if (!isGameOver && !showNextLevelModal) {
+    // Kurangi waktu
+    timeLeft -= deltaTime / 1000;
+    if (timeLeft <= 0) {
+        timeLeft = 0;
+        gameOver(); // Waktu habis = Kalah
     }
 
-    if (!isGameOver) {
-        updateCrane();
-        applySmoothMagnet();
+    updateCrane();
+    applySmoothMagnet();
+  }
+
+  // ==========================================
+  // LOGIC KAMERA
+  // ==========================================
+  let targetY = 0;
+  let highestLandedBlock = null;
+
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (blocks[i].hasLanded) {
+      highestLandedBlock = blocks[i];
+      break;
     }
+  }
 
-    // ==========================================
-    // LOGIC KAMERA
-    // ==========================================
-    let targetY = 0;
-    let highestLandedBlock = null;
+  if (highestLandedBlock && highestLandedBlock.position.y < height / 2) {
+    targetY = -(highestLandedBlock.position.y - height / 2) - 80;
+  }
 
-    for (let i = blocks.length - 1; i >= 0; i--) {
-        if (blocks[i].hasLanded) {
-            highestLandedBlock = blocks[i];
-            break;
-        }
-    }
+  camY = lerp(camY, targetY, 0.05);
 
-    if (highestLandedBlock && highestLandedBlock.position.y < height / 2) {
-        targetY = -(highestLandedBlock.position.y - height / 2) - 80;
-    }
+  push();
+  translate(0, camY);
 
-    camY = lerp(camY, targetY, 0.05);
+  // --- VISUAL TANAH ---
+  rectMode(CENTER);
+  imageMode(CENTER);
 
-    push();
-    translate(0, camY);
+  if (floorImg) {
+    image(floorImg, width / 2, groundY + 100, width, 200);
+  } else {
+    fill(15, 12, 30);
+    rect(width / 2, groundY + 100, width, 200);
+  }
 
-    // --- VISUAL TANAH (IMAGE DARI URL) ---
-    rectMode(CENTER);
-    imageMode(CENTER);
+  // --- VISUAL PONDASI ---
+  fill("#121633"); 
+  noStroke(); 
+  rect(foundation.position.x, foundation.position.y, 80, 40);
 
-    if (floorImg) {
-        // Render Gambar Tanah
-        // groundY + 100 adalah titik tengah body fisik tanah
-        image(floorImg, width / 2, groundY + 100, width, 200);
-    } else {
-        // Fallback jika gambar gagal
-        fill(15, 12, 30);
-        rect(width / 2, groundY + 100, width, 200);
-    }
+  drawMagnetGlow(foundation.position.x, foundation.position.y - 20, 80);
 
-    // --- VISUAL PONDASI (WARNA SOLID #121633) ---
-    fill('#121633'); // Warna sesuai request
-    noStroke();      // Tanpa garis pinggir (Full Solid)
-    rect(foundation.position.x, foundation.position.y, 80, 40);
+  // Blocks
+  for (let b of blocks) drawBlock(b);
 
-    // Glow Magnet di bawah pondasi (supaya tetap terlihat ada efek magnet)
-    drawMagnetGlow(foundation.position.x, foundation.position.y - 20, 80);
+  // Crane
+  if (currentBlock) drawCrane();
 
-    // Blocks
-    for (let b of blocks) drawBlock(b);
-
-    // Crane
-    if (currentBlock) drawCrane();
-
-    pop();
-    drawUI();
+  pop();
+  
+  // Render UI (Score & Timer)
+  drawUI();
 }
 
 // ==========================================
 // LOGIKA MAGNET & HELPER
 // ==========================================
 function applySmoothMagnet() {
-    if (blocks.length === 0) return;
+  if (blocks.length === 0) return;
 
-    for (let i = 0; i < blocks.length; i++) {
-        let fallingBlock = blocks[i];
-        let baseBlock = (i === 0) ? foundation : blocks[i - 1];
+  for (let i = 0; i < blocks.length; i++) {
+    let fallingBlock = blocks[i];
+    let baseBlock = i === 0 ? foundation : blocks[i - 1];
 
-        let dx = fallingBlock.position.x - baseBlock.position.x;
-        let dy = fallingBlock.position.y - baseBlock.position.y;
+    let dx = fallingBlock.position.x - baseBlock.position.x;
+    let dy = fallingBlock.position.y - baseBlock.position.y;
 
-        if (Math.abs(dx) < MAGNET_RANGE_X && dy < 0 && Math.abs(dy) < MAGNET_RANGE_Y) {
-            stroke(0, 255, 255, 60);
-            strokeWeight(1);
-            line(fallingBlock.position.x, fallingBlock.position.y, baseBlock.position.x, baseBlock.position.y);
+    if (
+      Math.abs(dx) < MAGNET_RANGE_X &&
+      dy < 0 &&
+      Math.abs(dy) < MAGNET_RANGE_Y
+    ) {
+      stroke(0, 255, 255, 60);
+      strokeWeight(1);
+      line(
+        fallingBlock.position.x,
+        fallingBlock.position.y,
+        baseBlock.position.x,
+        baseBlock.position.y
+      );
 
-            let forceX = -dx * MAGNET_FORCE;
-            Body.applyForce(fallingBlock, fallingBlock.position, { x: forceX, y: 0 });
+      let forceX = -dx * MAGNET_FORCE;
+      Body.applyForce(fallingBlock, fallingBlock.position, { x: forceX, y: 0 });
 
-            let angleCorrection = -fallingBlock.angle * STABILIZER_FORCE;
-            fallingBlock.torque = angleCorrection;
+      let angleCorrection = -fallingBlock.angle * STABILIZER_FORCE;
+      fallingBlock.torque = angleCorrection;
 
-            fallingBlock.frictionAir = 0.1;
-            fallingBlock.isBeingPulled = true;
-        } else {
-            fallingBlock.frictionAir = 0.01;
-            fallingBlock.isBeingPulled = false;
-        }
+      fallingBlock.frictionAir = 0.1;
+      fallingBlock.isBeingPulled = true;
+    } else {
+      fallingBlock.frictionAir = 0.01;
+      fallingBlock.isBeingPulled = false;
     }
+  }
 }
 
 function drawMagnetGlow(x, y, w) {
-    noStroke();
-    fill(0, 255, 255, 20); 
-    rect(x, y, w, 5, 2);
+  noStroke();
+  fill(0, 255, 255, 20);
+  rect(x, y, w, 5, 2);
 }
 
 function drawBlock(b) {
-    let pos = b.position;
-    push();
-    translate(pos.x, pos.y);
-    rotate(b.angle);
-    imageMode(CENTER);
-    image(blockImg, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
+  let pos = b.position;
+  push();
+  translate(pos.x, pos.y);
+  rotate(b.angle);
+  imageMode(CENTER);
+  image(blockImg, 0, 0, BLOCK_SIZE, BLOCK_SIZE);
 
-    fill(255);
-    noStroke();
-    textSize(24);
-    textStyle(BOLD);
-    textAlign(CENTER, CENTER);
-    text(b.gameNumber, 0, 0);
+  fill(255);
+  noStroke();
+  textSize(20); // Sedikit dikecilkan agar pas pixel font
+  textStyle(BOLD);
+  textAlign(CENTER, CENTER);
+  text(b.gameNumber, 0, 2);
 
-    if (b.speed < 0.2) {
-        drawMagnetGlow(0, -BLOCK_SIZE / 2, BLOCK_SIZE);
-    }
+  if (b.speed < 0.2) {
+    drawMagnetGlow(0, -BLOCK_SIZE / 2, BLOCK_SIZE);
+  }
 
-    if (b.isBeingPulled) {
-        stroke(0, 255, 255, 150);
-        strokeWeight(2);
-        noFill();
-        rect(0, 0, BLOCK_SIZE, BLOCK_SIZE, 3);
-    }
+  if (b.isBeingPulled) {
+    stroke(0, 255, 255, 150);
+    strokeWeight(2);
+    noFill();
+    rect(0, 0, BLOCK_SIZE, BLOCK_SIZE, 3);
+  }
 
-    pop();
+  pop();
 }
 
 function spawnNextBlock() {
-    if (isGameOver) return;
-    currentBlock = {
-        x: width / 2,
-        y: -camY + 80,
-        angle: 0,
-        swingSpeed: 0.03 + (score * 0.0005),
-        color: color(random(80, 180), random(120, 200), random(180, 240)),
-        number: blockCounter
-    };
+  if (isGameOver) return;
+  currentBlock = {
+    x: width / 2,
+    y: -camY + 80,
+    angle: 0,
+    swingSpeed: 0.03 + score * 0.0005,
+    color: color(random(80, 180), random(120, 200), random(180, 240)),
+    number: blockCounter,
+  };
 }
 
 function updateCrane() {
-    if (!currentBlock) return;
-    currentBlock.angle += currentBlock.swingSpeed;
-    currentBlock.x = (width / 2) + Math.sin(currentBlock.angle) * (width / 2 - 60);
-    currentBlock.y = -camY + 80;
+  if (!currentBlock) return;
+  currentBlock.angle += currentBlock.swingSpeed;
+  currentBlock.x = width / 2 + Math.sin(currentBlock.angle) * (width / 2 - 60);
+  currentBlock.y = -camY + 80;
 }
 
 // ==========================================
@@ -253,118 +283,209 @@ function updateCrane() {
 let showNextLevelModal = false;
 
 function mousePressed() {
-    userStartAudio();
+  userStartAudio();
 
-    if (showNextLevelModal) {
-        let btnX = width / 2, btnY = height / 2 + 50;
-        if (mouseX > btnX - 60 && mouseX < btnX + 60 && mouseY > btnY - 19 && mouseY < btnY + 19) {
-            window.location.href = "score.html";
-        }
-        return;
+  if (showNextLevelModal) {
+    let btnX = width / 2,
+      btnY = height / 2 + 50;
+    if (
+      mouseX > btnX - 60 &&
+      mouseX < btnX + 60 &&
+      mouseY > btnY - 19 &&
+      mouseY < btnY + 19
+    ) {
+      window.location.href = "score.html";
     }
-    if (isGameOver) resetGame();
-    else if (currentBlock) dropBlock();
+    return;
+  }
+  if (isGameOver) resetGame();
+  else if (currentBlock) dropBlock();
 }
 
 function dropBlock() {
-    let b = Bodies.rectangle(currentBlock.x, currentBlock.y, BLOCK_SIZE, BLOCK_SIZE, {
-        restitution: 0.0,
-        friction: 0.5,
-        frictionAir: 0.01,
-        density: 0.005,
-        label: 'block'
-    });
-    b.renderColor = currentBlock.color;
-    b.isBeingPulled = false;
-    b.hasLanded = false;
-    b.gameNumber = currentBlock.number;
+  let b = Bodies.rectangle(
+    currentBlock.x,
+    currentBlock.y,
+    BLOCK_SIZE,
+    BLOCK_SIZE,
+    {
+      restitution: 0.0,
+      friction: 0.5,
+      frictionAir: 0.01,
+      density: 0.005,
+      label: "block",
+    }
+  );
+  b.renderColor = currentBlock.color;
+  b.isBeingPulled = false;
+  b.hasLanded = false;
+  b.gameNumber = currentBlock.number;
 
-    let swingForce = Math.cos(currentBlock.angle) * 1.5;
-    Body.setVelocity(b, { x: swingForce, y: 0 });
+  let swingForce = Math.cos(currentBlock.angle) * 1.5;
+  Body.setVelocity(b, { x: swingForce, y: 0 });
 
-    World.add(world, b);
-    blocks.push(b);
+  World.add(world, b);
+  blocks.push(b);
 
-    blockCounter++;
+  blockCounter++;
 
-    let target = (blocks.length > 1) ? blocks[blocks.length - 2] : foundation;
-    if (Math.abs(currentBlock.x - target.position.x) < 20) score += 2; else score += 1;
+  let target = blocks.length > 1 ? blocks[blocks.length - 2] : foundation;
+  if (Math.abs(currentBlock.x - target.position.x) < 20) score += 2;
+  else score += 1;
 
-    currentBlock = null;
-    setTimeout(spawnNextBlock, 800);
+  currentBlock = null;
+  setTimeout(spawnNextBlock, 800);
 }
 
 function drawCrane() {
-    stroke(100); strokeWeight(2);
-    line(width / 2, -camY, currentBlock.x, currentBlock.y - BLOCK_SIZE / 2);
+  stroke(100);
+  strokeWeight(2);
+  line(width / 2, -camY, currentBlock.x, currentBlock.y - BLOCK_SIZE / 2);
 
-    imageMode(CENTER);
-    image(clawImg, currentBlock.x, currentBlock.y - BLOCK_SIZE / 2, BLOCK_SIZE, BLOCK_SIZE / 2);
-    image(blockImg, currentBlock.x, currentBlock.y, BLOCK_SIZE, BLOCK_SIZE);
+  imageMode(CENTER);
+  image(
+    clawImg,
+    currentBlock.x,
+    currentBlock.y - BLOCK_SIZE / 2,
+    BLOCK_SIZE,
+    BLOCK_SIZE / 2
+  );
+  image(blockImg, currentBlock.x, currentBlock.y, BLOCK_SIZE, BLOCK_SIZE);
 
-    fill(255);
-    textAlign(CENTER, CENTER);
-    textSize(24);
-    textStyle(BOLD);
-    text(currentBlock.number, currentBlock.x, currentBlock.y);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(20);
+  textStyle(BOLD);
+  noStroke();
+  text(currentBlock.number, currentBlock.x, currentBlock.y + 2);
 }
 
 function drawUI() {
-    fill(255); noStroke(); textSize(24); textAlign(LEFT, TOP);
-    text("Score: " + score, 20, 20);
+  // 1. SCORE
+  fill(255);
+  stroke(0); strokeWeight(4);
+  textSize(16);
+  textAlign(LEFT, TOP);
+  text("Score: " + score, 20, 20);
 
-    if (score >= 24 && !showNextLevelModal) {
-        showNextLevelModal = true;
-        document.cookie = `score=${score}; path=/; expires=${new Date(Date.now() + 86400000).toUTCString()}`;
+  // 2. PROGRESS BAR WAKTU (Gaya Retro)
+  rectMode(CORNER);
+  
+  let barWidth = 200;
+  let barHeight = 20;
+  let barX = 20;
+  let barY = 50; 
+
+  // Background Bar (Bingkai Hitam)
+  stroke(0); strokeWeight(4);
+  fill(50);
+  rect(barX, barY, barWidth, barHeight); 
+
+  // Logic Progress
+  let progress = timeLeft / GAME_DURATION;
+  if (progress < 0) progress = 0; 
+  let currentBarWidth = barWidth * progress;
+
+  // Foreground Bar (Warna Warni)
+  noStroke();
+  if (timeLeft <= 10) {
+      fill(255, 50, 50); // Merah Kritis
+  } else {
+      fill(50, 255, 50); // Hijau Aman
+  }
+  
+  if (currentBarWidth > 0) {
+      rect(barX + 2, barY + 2, currentBarWidth - 4, barHeight - 4);
+      // Shine Effect (Kilap Putih)
+      fill(255, 255, 255, 100);
+      rect(barX + 2, barY + 2, currentBarWidth - 4, barHeight / 3);
+  }
+  
+  // Teks Angka Waktu
+  fill(255); stroke(0); strokeWeight(3);
+  textSize(12); textAlign(LEFT, CENTER);
+  text(Math.ceil(timeLeft) + "s", barX + barWidth + 10, barY + barHeight / 2);
+
+
+  // --- LOGIC WIN / MODAL ---
+  // Syarat Menang (misal score > 24 atau sesuai progress akumulasi)
+  if (score >= 24 && !showNextLevelModal) {
+    showNextLevelModal = true;
+    document.cookie = `score=${score}; path=/; expires=${new Date(
+      Date.now() + 86400000
+    ).toUTCString()}`;
+  }
+
+  if (showNextLevelModal) {
+    fill(0, 0, 0, 240);
+    stroke(0, 255, 255);
+    strokeWeight(2);
+    rectMode(CENTER);
+    rect(width / 2, height / 2, 340, 180, 10);
+
+    noStroke();
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(20);
+    text("LEVEL 3 COMPLETE!", width / 2, height / 2 - 35);
+    textSize(14);
+    text("Skor Akhir: " + score, width / 2, height / 2 + 5);
+
+    fill(0, 200, 0);
+    stroke(255);
+    strokeWeight(1);
+    rect(width / 2, height / 2 + 50, 120, 38, 8);
+
+    fill(255);
+    noStroke();
+    textSize(12);
+    text("LIHAT HASIL >", width / 2, height / 2 + 50);
+  }
+
+  if (isGameOver && !showNextLevelModal) {
+    fill(0, 0, 0, 220);
+    rectMode(CORNER);
+    noStroke();
+    rect(0, 0, width, height);
+
+    fill(255, 50, 50);
+    stroke(0); strokeWeight(4);
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    
+    if (timeLeft <= 0) {
+        text("TIME UP!", width / 2, height / 2);
+    } else {
+        text("GAME OVER", width / 2, height / 2);
     }
 
-    if (showNextLevelModal) {
-        fill(0, 0, 0, 240);
-        stroke(0, 255, 255);
-        strokeWeight(2);
-        rectMode(CENTER);
-        rect(width / 2, height / 2, 340, 180, 10);
-        
-        noStroke();
-        fill(255); textAlign(CENTER, CENTER);
-        textSize(28); text("Selamat!", width / 2, height / 2 - 35);
-        textSize(18); text("Permainan Selesai!", width / 2, height / 2 + 5);
-        
-        fill(0, 200, 0); stroke(255); strokeWeight(1);
-        rect(width / 2, height / 2 + 50, 120, 38, 8);
-        
-        fill(255); noStroke(); textSize(18);
-        text("Lihat Skor", width / 2, height / 2 + 50);
+    fill(255);
+    textSize(16);
+    if (frameCount % 60 < 30) {
+        text("- TAP TO RESTART -", width / 2, height / 2 + 50);
     }
-
-    if (isGameOver && !showNextLevelModal) {
-        fill(0, 0, 0, 220);
-        rectMode(CORNER);
-        rect(0, 0, width, height);
-        
-        fill(255, 50, 50); textAlign(CENTER, CENTER);
-        textSize(32); text("GAME OVER", width / 2, height / 2);
-        
-        fill(255);
-        textSize(16); text("Tap to Restart", width / 2, height / 2 + 40);
-    }
+  }
 }
 
-function gameOver() { isGameOver = true; }
+function gameOver() {
+  isGameOver = true;
+}
 
 function resetGame() {
-    blocks.forEach(b => World.remove(world, b));
-    blocks = [];
-    score = 0;
-    blockCounter = 1;
-    isGameOver = false;
-    camY = 0;
-    spawnNextBlock();
+  blocks.forEach((b) => World.remove(world, b));
+  blocks = [];
+  score = getCookie("score") || 0; // Reset score ke checkpoint awal level jika perlu, atau 0
+  if(score === 0) blockCounter = 1; // reset counter hanya jika score 0
+  
+  isGameOver = false;
+  camY = 0;
+  timeLeft = GAME_DURATION; // Reset Timer
+  spawnNextBlock();
 }
 
 function windowResized() {
-    resizeCanvas(windowHeight * 0.56, windowHeight);
-    groundY = height - 100;
-    Body.setPosition(foundation, { x: width / 2, y: groundY });
-    Body.setPosition(floor, { x: width / 2, y: groundY + 100 });
+  resizeCanvas(windowHeight * 0.56, windowHeight);
+  groundY = height - 100;
+  Body.setPosition(foundation, { x: width / 2, y: groundY });
+  Body.setPosition(floor, { x: width / 2, y: groundY + 100 });
 }
